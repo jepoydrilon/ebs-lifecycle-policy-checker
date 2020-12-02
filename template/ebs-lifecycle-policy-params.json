@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "S3BucketName",
+    "ParameterValue": "infor-sthybrid-infrashared-us-east-1"
+  },
+  {
+    "ParameterKey": "S3BucketKey",
+    "ParameterValue": "scheduler/lambda/infra-scheduler-ebs-lifecycle-checker.zip"
+  },
+  {
+    "ParameterKey": "Handler",
+    "ParameterValue": "infra-scheduler-ebs-lifecycle-checker.lambda_handler"
+  },
+  {
+    "ParameterKey": "LambdaFunctionName",
+    "ParameterValue": "infra-scheduler-ebs-lifecycle-checker"
+  }
+]

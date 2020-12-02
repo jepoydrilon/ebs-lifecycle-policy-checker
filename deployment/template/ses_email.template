@@ -1,0 +1,16 @@
+<br>Hi Team,
+<br><br>See below snapshot lifecycle status.
+<table border="1"><tr><th>Policy ID</th><th>Description</th><th>State</th></tr>
+
+{% for policy in policy_test  %}
+<tr>
+    <td>{{ policy.Policy_id }}</td>
+    <td>{{ policy.Description }}</td>
+    <td>{{ policy.State }}</td>
+</tr>
+{% endfor %}
+
+</table>
+<br><br><b> -- Please do not reply to this email -- </b>
+
+
