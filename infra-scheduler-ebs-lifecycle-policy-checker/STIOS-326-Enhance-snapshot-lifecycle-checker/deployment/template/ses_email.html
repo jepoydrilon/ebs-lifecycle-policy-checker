@@ -1,0 +1,14 @@
+{% block content %}
+Hi Team,
+<br><br>Kindly see below snapshot lifecycle status. Kindly perform required actions if policy state is set to DISABLED.<br><br>
+<table border="1"><tr><th>Policy ID</th><th>Description</th><th>State</th></tr>
+{% for policy in policy  %}
+<tr>
+    <td>{{ policy.Policy_id }}</td>
+    <td>{{ policy.Description }}</td>
+    <td>{{ policy.State }}</td>
+</tr>
+{% endfor %}
+</table>
+<br><br><b> -- Please do not reply to this email -- </b>
+{% endblock %}

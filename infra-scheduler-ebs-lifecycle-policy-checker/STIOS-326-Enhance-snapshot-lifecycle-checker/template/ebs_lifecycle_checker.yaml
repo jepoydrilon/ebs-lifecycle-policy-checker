@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys EBS snapshot lifecycle daily report Lambda function
+Parameters:
+  S3BucketName:
+    Description: S3 bucket that contain the lambda zip package.
+    Type: String
+
+  S3BucketKey:
+    Description: S3 Key for lambda zip package.
+    Type: String
+
+  Handler:
+    Description: The handler function.
+    Type: String
+
+  LambdaFunctionName:
+    Description: Lambda name for EBS snapshot lifecycle checker
+    Type: String
+  
+
+Resources:
+
+  ebsSnapshotLifecycleRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: infra-scheduler-ebs-lifecycle-checker-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  ebsSnapshotLifecyclePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: infra-scheduler-ebs-lifecycle-checker-iam-policy
+      Roles:
+        - !Ref ebsSnapshotLifecycleRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - dlm:GetLifecyclePolicies
+              - dlm:GetLifecyclePolicy
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource:
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/infra-scheduler-ebs-lifecycle-checker'
+          - Effect: Allow
+            Action:
+              - ses:SendEmail
+            Resource: 
+              - !Sub 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/noreply-cloudnotification@infor.com'
+          - Effect: Allow
+            Action:
+              - ec2:DescribeRegions
+            Resource: '*'
+              
+  ebsSnapshotLifecycleFxn:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Description: 'Lambda function that will get the list of configured EBS snapshot lifecycle policies'
+      Code:
+        S3Bucket: !Ref S3BucketName
+        S3Key: !Ref S3BucketKey
+      Role: !GetAtt ebsSnapshotLifecycleRole.Arn
+      Timeout: 180
+      FunctionName: !Ref LambdaFunctionName
+      Handler: !Ref Handler
+      Runtime: python3.6
+      MemorySize: 256
+    DependsOn: ebsSnapshotLifecycleRole
+
+  ebsSnapshotLifecycleLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName: !Sub
+        - /aws/lambda/${Function}
+        - { Function: !Ref LambdaFunctionName }
+      RetentionInDays: 3
+    DeletionPolicy: Delete
+    DependsOn: ebsSnapshotLifecycleFxn
+
+  ebsSnapshotLifecycleScheduler:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      ScheduleExpression: cron(18 10 * * ? *)
+      Name: infra-scheduler-ebs-lifecycle-checker
+      Description:  Event schedule to trigger the Lambda function infra-scheduler-ebs-lifecycle-checker 10:18 AM
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt ebsSnapshotLifecycleFxn.Arn
+          Id: infra-scheduler-ebs-lifecycle-checker-trigger
+  
+  ebsSnapshotLifecycleInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Action: 'lambda:InvokeFunction'
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt ebsSnapshotLifecycleScheduler.Arn
+
+Outputs:
+
+  ebsSnapshotLifecycleFxn:
+    Description: ARN for the Lambda function 
+    Value: !GetAtt 
+      - ebsSnapshotLifecycleFxn
+      - Arn
+
